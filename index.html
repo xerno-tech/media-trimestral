@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Média Trimestral</title>
+<meta name="theme-color" content="#1f4fd1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Média">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#fff;--ink:#16213d;--muted:#56607a;--blue:#1f4fd1;--red:#c8233f;--line:#d7def0;--ok:#e6edff;--bad:#fde8ec;--soft:#f4f7ff}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1626;--ink:#e7ecfb;--muted:#a3adc8;--blue:#7ea2ff;--red:#ff7d92;--line:#2a3658;--ok:#1c2c57;--bad:#3a1a24;--soft:#16203a}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:480px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px 28px}
+main.wide{max-width:860px}
+h1{font-size:28px;line-height:1.1;margin:0 0 4px}
+.f{color:var(--muted);font-size:14px;margin:0 0 14px}
+.tabs{display:flex;gap:6px;background:var(--soft);padding:4px;border-radius:12px;margin-bottom:16px}
+.tabs button{flex:1;margin:0;min-height:42px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:inherit;font-weight:700}
+.tabs button[aria-selected=true]{background:var(--blue);color:#fff}
+.row{display:flex;gap:10px;margin-bottom:16px}
+.row>div{flex:1}
+label{display:block;font-weight:700;font-size:14px;margin-bottom:4px;text-align:center}
+input{font:inherit;-webkit-appearance:none;appearance:none}
+.row input{width:100%;font-size:28px;font-weight:700;text-align:center;color:var(--blue);min-height:60px;padding:6px;border:2px solid var(--line);border-radius:12px;background:var(--bg)}
+input:focus{outline:none;border-color:var(--blue)}
+.p{display:block;text-align:center;font-size:12px;color:var(--muted);margin-top:2px}
+#res{border:2px solid var(--line);border-radius:16px;padding:20px;text-align:center}
+#res.ok{background:var(--ok);border-color:var(--blue)}#res.bad{background:var(--bad);border-color:var(--red)}
+#lab{font-size:14px;color:var(--muted)}
+#big{font-size:76px;font-weight:800;line-height:1}
+.ok #big,.ok #tag{color:var(--blue)}.bad #big,.bad #tag{color:var(--red)}
+#tag{font-weight:800;font-size:21px;margin-top:6px}
+#msg{margin-top:6px}
+#fun{margin-top:8px;font-weight:700;font-size:18px}#fun:empty{display:none}
+.btn{display:flex;align-items:center;justify-content:center;margin-top:16px;width:100%;min-height:48px;font:inherit;font-weight:700;border-radius:12px;border:2px solid var(--blue);background:transparent;color:var(--blue);text-align:center;cursor:pointer}
+.btn.fill{background:var(--blue);color:#fff}
+.btn.small{display:inline-flex;width:auto;margin:0;min-height:40px;padding:6px 14px;font-size:15px}
+.btn.danger{border-color:var(--red);color:var(--red)}
+#arq{position:absolute;width:1px;height:1px;opacity:0}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:16px;text-align:center;color:var(--muted);font-size:15px}
+.drop .btn{margin-top:10px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+.bar select{font:inherit;min-height:40px;padding:4px 8px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.chk{display:flex;align-items:center;gap:6px;font-size:15px;min-height:40px}
+.chk input{-webkit-appearance:checkbox;appearance:auto;width:20px;height:20px}
+.info{font-size:14px;color:var(--muted);margin:6px 0}
+.warn{font-size:14px;color:var(--red);margin:6px 0}
+.resumo{display:flex;gap:10px;margin:10px 0}
+.resumo div{flex:1;border-radius:12px;padding:10px;text-align:center;background:var(--soft);font-size:14px}
+.resumo b{display:block;font-size:26px}
+.resumo .a b{color:var(--blue)}.resumo .b b{color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-size:12px;color:var(--muted);text-align:center;padding:6px 3px;border-bottom:2px solid var(--line)}
+th.n{text-align:left}
+td{border-bottom:1px solid var(--line);padding:6px 3px;text-align:center;vertical-align:middle}
+td.nome{text-align:left;font-size:14px;line-height:1.25}
+td.num{color:var(--muted);font-size:13px;width:2em}
+td input{width:3.3em;min-height:38px;text-align:center;font-weight:700;font-size:16px;color:var(--blue);border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:2px}
+td input.vazio{border-style:dashed}
+td.med{font-weight:800;white-space:nowrap}
+td.sit{font-size:13px;text-align:left;line-height:1.25;min-width:7.5em}
+.up{color:var(--blue)}.down{color:var(--red)}
+.sit small{display:block;color:var(--muted);font-weight:400}
+.aviso{border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:14px;line-height:1.45;background:var(--soft)}
+.aviso b{color:var(--ink)}
+#orient{margin-top:26px;border-top:2px solid var(--line);padding-top:16px;font-size:15px;line-height:1.5}
+#orient h2{font-size:20px;margin:0 0 8px}
+#orient h3{font-size:16px;margin:16px 0 4px}
+#orient ul{margin:0;padding-left:20px}#orient li{margin:3px 0}
+.wm{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22260%22%20height%3D%22140%22%3E%3Ctext%20x%3D%2210%22%20y%3D%2290%22%20transform%3D%22rotate%28-18%20130%2070%29%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20font-weight%3D%22700%22%20fill%3D%22%238a94b0%22%20fill-opacity%3D%220.22%22%3EUso%20interno%20%E2%80%94%20n%C3%A3o%20compartilhar%3C/text%3E%3C/svg%3E");background-repeat:repeat}
+#tb.ini td.nome{white-space:nowrap}
+body.oculto td.nome{filter:blur(7px)}
+footer{margin-top:22px;text-align:center;font-size:13px;color:var(--muted);line-height:1.5}
+footer b{color:var(--ink)}
+[hidden]{display:none!important}
+@media(max-width:560px){table{font-size:14px}td input{width:2.9em;font-size:15px}td.sit{min-width:6em}th,td{padding:5px 2px}}
+</style>
+</head>
+<body>
+<main id="main">
+  <h1>Média trimestral</h1>
+  <p class="f">MA = (1º×3 + 2º×3 + 3º×4) ÷ 10 · média mínima 6,0</p>
+  <div class="aviso" role="note"><b>Só para conferência.</b> O resultado oficial é sempre o do sistema da escola. Não indica aprovação. Ferramenta independente, sem vínculo com nenhuma organização de ensino. Leia os <a href="#orient">avisos e orientações</a>.</div>
+  <div class="tabs" role="tablist">
+    <button type="button" id="tabUm" role="tab" aria-selected="true">Um aluno</button>
+    <button type="button" id="tabTurma" role="tab" aria-selected="false">Turma (PDF)</button>
+  </div>
+
+  <section id="vUm">
+  <form autocomplete="off" onsubmit="return false">
+    <p class="f" style="margin-top:-4px">Deixe em branco o trimestre que ainda não fechou.</p>
+    <div class="row">
+      <div><label for="t1">1º tri</label><input id="t1" type="text" inputmode="decimal" autocomplete="off" placeholder="—"><span class="p">peso 3</span></div>
+      <div><label for="t2">2º tri</label><input id="t2" type="text" inputmode="decimal" autocomplete="off" placeholder="—"><span class="p">peso 3</span></div>
+      <div><label for="t3">3º tri</label><input id="t3" type="text" inputmode="decimal" autocomplete="off" placeholder="—"><span class="p">peso 4</span></div>
+    </div>
+    <div id="res" aria-live="polite">
+      <div id="lab">Média</div>
+      <div id="big">—</div>
+      <div id="tag"></div>
+      <div id="msg">Digite as notas.</div>
+      <div id="fun"></div>
+    </div>
+    <button id="limpar" type="button" class="btn">Limpar</button>
+  </form>
+  </section>
+
+  <section id="vTurma" hidden>
+    <div class="drop" id="drop">
+      Escolha os PDFs de <b>Aproveitamentos</b> do Diário de Classe (um por trimestre). Pode escolher os 3 de uma vez.
+      <label class="btn fill" for="arq">Carregar PDFs</label>
+      <input id="arq" type="file" accept="application/pdf,.pdf" multiple>
+      <div class="info">O PDF é lido aqui no seu celular. Nada é enviado para a internet.</div>
+    </div>
+    <div id="status" class="info" aria-live="polite"></div>
+    <div id="painel" hidden>
+      <div class="bar">
+        <select id="selTurma" aria-label="Turma"></select>
+        <select id="filtro" aria-label="Filtro">
+          <option value="todos">Todos os alunos</option>
+          <option value="abaixo">Só abaixo da média</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="iniciais" checked> Só iniciais</label>
+      </div>
+      <div id="trisInfo" class="info"></div>
+      <div class="resumo">
+        <div class="a"><b id="nAcima">0</b>acima da média</div>
+        <div class="b"><b id="nAbaixo">0</b>abaixo da média</div>
+      </div>
+      <div class="wm">
+      <table>
+        <thead><tr><th>Nº</th><th class="n">Aluno</th><th>1º</th><th>2º</th><th>3º</th><th>Média</th><th class="n">Situação</th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+      </div>
+      <p class="info">Os nomes começam só com iniciais: desmarque “Só iniciais” para ver o nome completo. Ao sair da página, os nomes ficam borrados. * média parcial (falta trimestre). Campo tracejado = sem nota no PDF. Dá para digitar ou corrigir qualquer nota na tabela.</p>
+      <div class="bar">
+        <button type="button" class="btn small danger" id="apagar">Limpar turma</button>
+      </div>
+      <p class="info">Nada fica salvo: ao fechar a página, a turma some.</p>
+    </div>
+  </section>
+
+  <section id="orient">
+    <h2>Avisos e orientações</h2>
+    <h3>O que é esta ferramenta</h3>
+    <ul>
+      <li>Calculadora independente, feita por um professor para colegas. <b>Não tem vínculo com nenhuma organização de ensino</b>.</li>
+      <li>Serve <b>só para conferência</b>. O resultado oficial é sempre o registrado no sistema da escola.</li>
+      <li><b>Não indica aprovação ou reprovação.</b> Mostra apenas se a média está acima ou abaixo de 6,0 e quanto falta.</li>
+      <li>Usa a fórmula MA = (1º×3 + 2º×3 + 3º×4) ÷ 10, média mínima 6,0. Confira se é a mesma do regimento da sua escola.</li>
+      <li>É gratuita, sem anúncios e sem cadastro. É oferecida como está, sem garantia: em caso de dúvida, confira as notas com o PDF e com o sistema.</li>
+    </ul>
+    <h3>Privacidade e LGPD</h3>
+    <ul>
+      <li>O PDF é lido <b>no próprio aparelho</b>. Nenhum nome ou nota é enviado para a internet.</li>
+      <li>A página é bloqueada tecnicamente para enviar dados (regra de segurança do navegador) e não usa cookies, contas ou contadores de visita.</li>
+      <li><b>Nada fica salvo.</b> Ao fechar ou recarregar a página, tudo é apagado.</li>
+      <li>Os marcadores do PDF (* e **) são removidos dos nomes e não aparecem na tela.</li>
+    </ul>
+    <h3>Uso responsável</h3>
+    <ul>
+      <li><b>Não compartilhe prints</b> com nomes ou notas de alunos.</li>
+      <li>Depois de usar, <b>apague o PDF baixado</b> do celular (Downloads, WhatsApp, Arquivos).</li>
+      <li>A tabela abre com <b>“Só iniciais”</b> marcado. Só desmarque quando precisar ver o nome e ninguém mais estiver vendo a tela.</li>
+      <li>Não existe bloqueio de print em sites. Por isso os nomes começam em iniciais, ficam borrados quando você sai da página, e a tabela tem a marca “Uso interno — não compartilhar”.</li>
+      <li>Ferramenta pensada para uso dos professores. Não a apresente a alunos ou famílias como resultado final.</li>
+    </ul>
+  </section>
+  <footer>
+    Criado por <b>Xernoba</b><br>
+    A calculadora só mostra se o aluno está acima ou abaixo da média. Não indica aprovação.<br>
+    Nenhum dado sai do seu celular e nada fica salvo.<br>
+    Ferramenta independente, sem vínculo com nenhuma organização de ensino.
+  </footer>
+</main>
+<script src="lib/pdf.min.js"></script>
+<script>
+(function(){
+  var PESOS=[3,3,4], MIN=6, MAX=10;
+  var ids=['t1','t2','t3'];
+  function el(id){return document.getElementById(id)}
+  function num(v){v=String(v==null?'':v).trim().replace(',','.');if(v==='')return null;var n=Number(v);return (isFinite(n)&&n>=0&&n<=MAX)?n:NaN}
+  function fmt(n,d){return n.toFixed(d).replace('.',',')}
+  function up1(n){return Math.ceil(n*10-1e-9)/10}
+
+  // ---------- cálculo comum ----------
+  // devolve {cls, lab, big, tag, msg, fun, curta} ou null
+  function avaliar(notas){
+    for(var i=0;i<3;i++){if(notas[i]!==null&&isNaN(notas[i]))return {cls:'bad',lab:'Média',big:'—',tag:'',msg:'A nota do '+(i+1)+'º tri tem que ser de 0 a 10.',fun:'',curta:'Nota inválida',erro:true}}
+    var soma=0,pf=0,falta=[];
+    notas.forEach(function(n,i){if(n===null)falta.push(i);else{soma+=n*PESOS[i];pf+=PESOS[i]}});
+    if(pf===0)return null;
+    if(!falta.length){
+      var m=soma/10;
+      if(m>=MIN-1e-9)return {cls:'ok',lab:'Média',big:fmt(m,2),tag:'Acima da média',msg:m>MIN+1e-9?'Ficou '+fmt(m-MIN,2)+' acima de 6,0.':'Ficou exatamente em 6,0.',fun:m<MIN+0.1?'Na trave! 😅':(m>=9?'Mandou bem demais! 🏆':''),curta:'Acima da média',media:m,acima:true};
+      return {cls:'bad',lab:'Média',big:fmt(m,2),tag:'Abaixo da média',msg:'Faltaram '+fmt(MIN-m,2)+' para chegar a 6,0.',fun:MIN-m<0.3?'Bateu na trave! 😬':'',curta:'Abaixo · faltou '+fmt(MIN-m,2),media:m,acima:false};
+    }
+    var parcial=soma/pf,pr=0;falta.forEach(function(i){pr+=PESOS[i]});
+    var precisa=(MIN*10-soma)/pr;
+    var nomes=falta.map(function(i){return (i+1)+'º'}).join(' e ');
+    var cada=falta.length>1?' em cada um':'';
+    var base={lab:'Média parcial',big:fmt(parcial,2),media:parcial,parcial:true};
+    function mk(o){for(var k in base)if(!(k in o))o[k]=base[k];return o}
+    if(precisa<=0)return mk({cls:'ok',tag:'Acima da média',msg:'Mesmo com 0 no '+nomes+', já fica na média.',fun:'Já garantiu, pode respirar 😌',curta:'Já garantiu',acima:true});
+    if(precisa>MAX+1e-9)return mk({cls:'bad',tag:'Abaixo da média',msg:'Mesmo tirando 10 no '+nomes+', não chega a 6,0.',fun:'Nem com reza braba 🙏',curta:'Não alcança 🙏',acima:false});
+    var ac=parcial>=MIN-1e-9;
+    return mk({cls:ac?'ok':'bad',tag:ac?'Acima da média até agora':'Abaixo da média até agora',msg:'Precisa de '+fmt(up1(precisa),1)+' no '+nomes+' tri'+cada+' para ficar na média.',fun:precisa>9?'Vai precisar de reza braba! 🙏':(precisa<=3?'Tranquilo, é só não zerar 😎':''),curta:'Precisa '+fmt(up1(precisa),1)+' no '+nomes+(precisa>9?' 🙏':''),acima:ac,parcial:true});
+  }
+
+  // ---------- aba: um aluno ----------
+  function calcUm(){
+    var r=avaliar(ids.map(function(id){return num(el(id).value)}));
+    if(!r)r={cls:'',lab:'Média',big:'—',tag:'',msg:'Digite as notas.',fun:''};
+    el('res').className=r.cls;el('lab').textContent=r.lab;el('big').textContent=r.big;el('tag').textContent=r.tag;el('msg').textContent=r.msg;el('fun').textContent=r.fun||'';
+  }
+  ids.forEach(function(id){var e=el(id);['input','keyup','change'].forEach(function(ev){e.addEventListener(ev,calcUm)})});
+  function zeraUm(){ids.forEach(function(id){el(id).value=''});calcUm()}
+  el('limpar').addEventListener('click',function(){zeraUm();el('t1').focus()});
+  window.addEventListener('pageshow',zeraUm);
+
+  // ---------- abas ----------
+  function aba(t){
+    var turma=t==='turma';
+    el('tabUm').setAttribute('aria-selected',!turma);el('tabTurma').setAttribute('aria-selected',turma);
+    el('vUm').hidden=turma;el('vTurma').hidden=!turma;el('main').className=turma?'wide':'';
+  }
+  el('tabUm').addEventListener('click',function(){aba('um')});
+  el('tabTurma').addEventListener('click',function(){aba('turma')});
+
+  // ---------- leitura do PDF ----------
+  var TRI={primeiro:0,segundo:1,terceiro:2};
+  function limpaNome(s){return s.replace(/\*/g,'').replace(/\s+/g,' ').trim()}
+  async function lerPDF(file){
+    var buf=await file.arrayBuffer();
+    var doc=await pdfjsLib.getDocument({data:buf}).promise;
+    var out={turma:'',serie:'',comp:'',escola:'',tri:-1,alunos:{},temNotas:false};
+    for(var p=1;p<=doc.numPages;p++){
+      var page=await doc.getPage(p);
+      var tc=await page.getTextContent();
+      var it=tc.items.filter(function(i){return i.str&&i.str.trim()}).map(function(i){return {s:i.str.trim(),x:i.transform[4],y:i.transform[5]}});
+      // linhas por y
+      var linhas=[];
+      it.sort(function(a,b){return b.y-a.y||a.x-b.x});
+      it.forEach(function(i){var L=linhas.length&&Math.abs(linhas[linhas.length-1].y-i.y)<3?linhas[linhas.length-1]:null;if(!L){L={y:i.y,its:[]};linhas.push(L)}L.its.push(i)});
+      linhas.forEach(function(L){L.its.sort(function(a,b){return a.x-b.x})});
+      function depois(rot){for(var k=0;k<linhas.length;k++){var its=linhas[k].its;for(var j=0;j<its.length;j++){if(its[j].s.indexOf(rot)===0){var rest=its[j].s.slice(rot.length).trim();if(rest)return rest;return its[j+1]?its[j+1].s:''}}}return ''}
+      if(!out.turma)out.turma=depois('Turma:');
+      if(!out.serie)out.serie=depois('Série:');
+      if(!out.comp)out.comp=depois('Componente:');
+      if(out.tri<0){var per=depois('Período:').toLowerCase().split(' ')[0];if(per in TRI)out.tri=TRI[per]}
+      var aprX=null,maxX=null;
+      it.forEach(function(i){if(i.s==='APR')aprX=i.x;if(i.s.indexOf('MÁXIMO')===0)maxX=i.x});
+      if(aprX===null)continue;
+      linhas.forEach(function(L){
+        var f=L.its[0];
+        if(!/^\d{1,3}$/.test(f.s)||f.x>60)return;
+        var nome=[],apr=null;
+        L.its.slice(1).forEach(function(i){
+          if(maxX!==null&&i.x<maxX-5&&!/^\d+,\d+$/.test(i.s))nome.push(i.s);
+          else if(Math.abs(i.x-aprX)<25&&/^\d+,\d+$/.test(i.s))apr=i.s;
+        });
+        if(!nome.length)return;
+        var n=+f.s;
+        out.alunos[n]={n:n,nome:limpaNome(nome.join(' ')),apr:apr};
+        if(apr!==null)out.temNotas=true;
+      });
+    }
+    return out;
+  }
+
+  // ---------- estado da turma ----------
+  var turmas={}; // chave turma -> {rot, alunos:{n:{n,nome,t:[s,s,s],sem:[b,b,b]}}, tris:[bool,bool,bool]}
+  var atual='';
+  try{localStorage.removeItem('mt-turmas-v1')}catch(e){} // limpa dados de versões antigas
+  function salvar(){}
+  var armado=false;
+  el('apagar').addEventListener('click',function(){
+    if(!armado){armado=true;el('apagar').textContent='Toque de novo para limpar';setTimeout(function(){armado=false;el('apagar').textContent='Limpar turma'},4000);return}
+    armado=false;el('apagar').textContent='Limpar turma';
+    turmas={};atual='';el('painel').hidden=true;el('status').textContent='Turma limpa.';el('arq').value='';
+  });
+
+  el('arq').addEventListener('change',async function(){
+    var files=[].slice.call(el('arq').files||[]);if(!files.length)return;
+    if(typeof pdfjsLib==='undefined'){el('status').innerHTML='';el('status').className='warn';el('status').textContent='Não consegui carregar o leitor de PDF. Recarregue a página.';return}
+    pdfjsLib.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js';
+    el('status').className='info';el('status').textContent='Lendo '+files.length+' PDF(s)…';
+    var msgs=[];
+    for(var k=0;k<files.length;k++){
+      try{
+        var r=await lerPDF(files[k]);
+        if(r.tri<0||!Object.keys(r.alunos).length&&!r.turma){msgs.push(files[k].name+': não parece um PDF de Aproveitamentos.');continue}
+        var chave=(r.serie+' '+r.turma).trim()||'Turma';
+        var T=turmas[chave]||(turmas[chave]={rot:'Turma '+r.turma+(r.serie?' · '+r.serie:'')+(r.comp?' · '+r.comp:''),alunos:{},tris:[false,false,false]});
+        if(!Object.keys(r.alunos).length){msgs.push((r.tri+1)+'º tri da turma '+r.turma+': ainda sem alunos/notas no PDF.');continue}
+        T.tris[r.tri]=r.temNotas;
+        Object.keys(r.alunos).forEach(function(n){
+          var a=r.alunos[n];var A=T.alunos[n]||(T.alunos[n]={n:a.n,nome:a.nome,t:['','',''],sem:[false,false,false]});
+          A.nome=a.nome;A.t[r.tri]=a.apr||'';A.sem[r.tri]=!a.apr;
+        });
+        atual=chave;
+        msgs.push((r.tri+1)+'º tri da turma '+r.turma+': '+Object.keys(r.alunos).length+' alunos lidos.');
+      }catch(e){msgs.push(files[k].name+': não consegui ler este PDF.')}
+    }
+    el('status').className='info';el('status').textContent=msgs.join(' ')+' Lembrete: depois de usar, apague o PDF baixado do celular (Downloads, WhatsApp, Arquivos).';
+    el('arq').value='';
+    montar();salvar();
+  });
+
+  function iniciais(nome){return nome.split(' ').filter(function(p){return /^[A-ZÀ-Ý]/.test(p)}).map(function(p){return p[0].toUpperCase()+'.'}).join(' ')}
+  function montar(){
+    var ks=Object.keys(turmas);if(!ks.length){el('painel').hidden=true;return}
+    if(!(atual in turmas))atual=ks[0];
+    el('selTurma').innerHTML='';
+    ks.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=turmas[k].rot;if(k===atual)o.selected=true;el('selTurma').appendChild(o)});
+    el('painel').hidden=false;
+    var T=turmas[atual];
+    var falt=[];T.tris.forEach(function(b,i){if(!b)falt.push((i+1)+'º')});
+    el('trisInfo').textContent=falt.length?'Sem notas no PDF: '+falt.join(', ')+' tri. Esses campos ficam em branco e entram como “trimestre que falta”.':'Os 3 trimestres foram carregados.';
+    var tb=el('tb');tb.innerHTML='';tb.className=el('iniciais').checked?'ini':'';
+    Object.keys(T.alunos).map(Number).sort(function(a,b){return a-b}).forEach(function(n){
+      var A=T.alunos[n];var tr=document.createElement('tr');tr.dataset.n=n;
+      var td=document.createElement('td');td.className='num';td.textContent=n;tr.appendChild(td);
+      td=document.createElement('td');td.className='nome';td.dataset.full=A.nome;td.textContent=el('iniciais').checked?iniciais(A.nome):A.nome;tr.appendChild(td);
+      for(var i=0;i<3;i++){
+        td=document.createElement('td');var inp=document.createElement('input');
+        inp.type='text';inp.inputMode='decimal';inp.autocomplete='off';inp.value=A.t[i];inp.dataset.i=i;inp.setAttribute('aria-label',(i+1)+'º trimestre de '+A.nome);
+        if(A.t[i]==='')inp.className='vazio';
+        td.appendChild(inp);tr.appendChild(td);
+      }
+      td=document.createElement('td');td.className='med';tr.appendChild(td);
+      td=document.createElement('td');td.className='sit';tr.appendChild(td);
+      tb.appendChild(tr);
+    });
+    atualizar();
+  }
+  function atualizar(){
+    var T=turmas[atual];if(!T)return;var na=0,nb=0,filtro=el('filtro').value;
+    [].forEach.call(el('tb').rows,function(tr){
+      var A=T.alunos[tr.dataset.n];
+      var r=avaliar(A.t.map(num));
+      var med=tr.cells[5],sit=tr.cells[6];
+      if(!r){med.textContent='—';med.className='med';sit.textContent='Sem notas';sit.className='sit';tr.hidden=filtro==='abaixo';return}
+      med.textContent=r.big+(r.parcial?'*':'');med.className='med '+(r.cls==='ok'?'up':'down');
+      sit.textContent=r.curta;var semN=[];A.sem.forEach(function(b,i){if(b&&T.tris[i]&&A.t[i]==='')semN.push((i+1)+'º')});if(semN.length){var sm=document.createElement('small');sm.textContent='Sem nota no '+semN.join(' e ')+' tri no PDF';sit.appendChild(sm)}sit.className='sit '+(r.cls==='ok'?'up':'down');
+      if(!r.erro){if(r.cls==='ok')na++;else nb++}
+      tr.hidden=filtro==='abaixo'&&r.cls==='ok';
+    });
+    el('nAcima').textContent=na;el('nAbaixo').textContent=nb;
+  }
+  el('tb').addEventListener('input',function(e){
+    var inp=e.target;if(inp.tagName!=='INPUT')return;
+    var A=turmas[atual].alunos[inp.closest('tr').dataset.n];A.t[+inp.dataset.i]=inp.value;
+    inp.className=inp.value===''?'vazio':'';atualizar();salvar();
+  });
+  el('selTurma').addEventListener('change',function(){atual=el('selTurma').value;montar();salvar()});
+  el('filtro').addEventListener('change',atualizar);
+  el('iniciais').addEventListener('change',function(){el('tb').className=el('iniciais').checked?'ini':'';[].forEach.call(document.querySelectorAll('td.nome'),function(td){td.textContent=el('iniciais').checked?iniciais(td.dataset.full):td.dataset.full})});
+
+  function esconde(){document.body.classList.add('oculto')}
+  function mostra(){document.body.classList.remove('oculto')}
+  document.addEventListener('visibilitychange',function(){if(document.hidden)esconde();else mostra()});
+  window.addEventListener('pagehide',esconde);window.addEventListener('blur',esconde);window.addEventListener('focus',mostra);
+  window.addEventListener('pageshow',mostra);
+  calcUm();
+})();
+</script>
+</body>
+</html>
