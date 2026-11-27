@@ -66,6 +66,7 @@ td.num{color:var(--muted);font-size:13px;width:2em}
 td input{width:3.3em;min-height:38px;text-align:center;font-weight:700;font-size:16px;color:var(--blue);border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:2px}
 td input.vazio{border-style:dashed}
 td.med{font-weight:800;white-space:nowrap}
+td small.erm{display:block;font-size:10px;font-weight:700;color:var(--muted);line-height:1;margin-top:2px}
 td.sit{font-size:13px;text-align:left;line-height:1.25;min-width:7.5em}
 .up{color:var(--blue)}.down{color:var(--red)}
 .sit small{display:block;color:var(--muted);font-weight:400}
@@ -115,7 +116,7 @@ footer b{color:var(--ink)}
 
   <section id="vTurma" hidden>
     <div class="drop" id="drop">
-      Escolha os PDFs de <b>Aproveitamentos</b> do Diário de Classe (um por trimestre). Pode escolher os 3 de uma vez.
+      Escolha a <b>Ficha de Resumo de Aproveitamento</b> da turma (já traz os 3 trimestres e os ER) ou os PDFs de <b>Aproveitamentos</b> do Diário de Classe (um por trimestre). Pode escolher vários de uma vez.
       <label class="btn fill" for="arq">Carregar PDFs</label>
       <input id="arq" type="file" accept="application/pdf,.pdf" multiple>
       <div class="info">O PDF é lido aqui no seu celular. Nada é enviado para a internet.</div>
@@ -141,7 +142,7 @@ footer b{color:var(--ink)}
         <tbody id="tb"></tbody>
       </table>
       </div>
-      <p class="info">Os nomes começam só com iniciais: desmarque “Só iniciais” para ver o nome completo. Ao sair da página, os nomes ficam borrados. * média parcial (falta trimestre). Campo tracejado = sem nota no PDF. Dá para digitar ou corrigir qualquer nota na tabela.</p>
+      <p class="info">Os nomes começam só com iniciais: desmarque “Só iniciais” para ver o nome completo. Ao sair da página, os nomes ficam borrados. * média parcial (falta trimestre). Campo tracejado = sem nota no PDF. “ER” embaixo da nota = vale a nota da recuperação, por ser maior. Dá para digitar ou corrigir qualquer nota na tabela.</p>
       <div class="bar">
         <button type="button" class="btn small danger" id="apagar">Limpar turma</button>
       </div>
@@ -157,6 +158,7 @@ footer b{color:var(--ink)}
       <li>Serve <b>só para conferência</b>. O resultado oficial é sempre o registrado no sistema da escola.</li>
       <li><b>Não indica aprovação ou reprovação.</b> Mostra apenas se a média está acima ou abaixo de 6,0 e quanto falta.</li>
       <li>Usa a fórmula MA = (1º×3 + 2º×3 + 3º×4) ÷ 10, média mínima 6,0. Confira se é a mesma do regimento da sua escola.</li>
+      <li>Se o PDF trouxer nota de estudos de recuperação (ER), vale a maior entre a do trimestre e a do ER. A tabela marca “ER” quando foi a da recuperação.</li>
       <li>É gratuita, sem anúncios e sem cadastro. É oferecida como está, sem garantia: em caso de dúvida, confira as notas com o PDF e com o sistema.</li>
     </ul>
     <h3>Privacidade e LGPD</h3>
@@ -239,6 +241,61 @@ footer b{color:var(--ink)}
   // ---------- leitura do PDF ----------
   var TRI={primeiro:0,segundo:1,terceiro:2};
   function limpaNome(s){return s.replace(/\*/g,'').replace(/\s+/g,' ').trim()}
+  var NOTA=/^\d{1,2},\d{1,2}$/;
+  function vnum(s){return Number(s.replace(',','.'))}
+  // Ficha de Resumo de Aproveitamento: os 3 trimestres (e os ER) no mesmo PDF.
+  // its = [{s,x,y}] em coordenadas de tela (y cresce para baixo).
+  function lerFicha(its,out){
+    function linhasDe(arr){
+      var L=[];arr.slice().sort(function(a,b){return a.y-b.y||a.x-b.x}).forEach(function(i){var u=L.length&&Math.abs(L[L.length-1].y-i.y)<3?L[L.length-1]:null;if(!u){u={y:i.y,its:[]};L.push(u)}u.its.push(i)});
+      L.forEach(function(u){u.its.sort(function(a,b){return a.x-b.x})});return L;
+    }
+    var linhas=linhasDe(its);
+    function depois(rot){for(var k=0;k<linhas.length;k++){var a=linhas[k].its;for(var j=0;j<a.length;j++){if(a[j].s.indexOf(rot)===0){var r=a[j].s.slice(rot.length).trim();if(r)return r;return a[j+1]?a[j+1].s:''}}}return ''}
+    if(!out.turma)out.turma=depois('Turma:');
+    if(!out.serie)out.serie=depois('Série:');
+    if(!out.comp)out.comp=depois('Componente:');
+    // cabeçalhos dos trimestres e das colunas "Aprov"
+    var aprov=its.filter(function(i){return i.s==='Aprov'});
+    var cols=[],topoTab=null;
+    its.forEach(function(i){
+      var m=i.s.match(/^(\d)\s*[°º]\s*Trim/i),er=false;
+      if(!m){m=i.s.match(/^ER\s*(\d)\s*[°º]?\s*Tri/i);er=!!m}
+      if(!m)return;
+      var t=+m[1]-1;if(t<0||t>2)return;
+      var best=null;aprov.forEach(function(a){if(a.y>i.y&&a.y-i.y<30&&(!best||Math.abs(a.x-i.x)<Math.abs(best.x-i.x)))best=a});
+      if(!best)return;
+      cols.push({t:t,er:er,x:best.x});
+      if(topoTab===null||best.y>topoTab)topoTab=best.y;
+    });
+    if(!cols.some(function(c){return !c.er}))return false;
+    var nomeAte=Math.min.apply(null,aprov.map(function(a){return a.x}))-4;
+    linhas.forEach(function(L){
+      if(topoTab!==null&&L.y<=topoTab+2)return;
+      var f=L.its[0];
+      if(!/^\d{1,3}$/.test(f.s)||f.x>60)return;
+      var nome=[],tri=[null,null,null],er=[null,null,null],parecer=false;
+      L.its.slice(1).forEach(function(i){
+        if(i.x<nomeAte){nome.push(i.s);return}
+        if(i.s==='ED'||/^Parec/i.test(i.s)){parecer=true;return}
+        if(!NOTA.test(i.s))return;
+        var c=null;cols.forEach(function(k){if(Math.abs(i.x-k.x)<18&&(!c||Math.abs(i.x-k.x)<Math.abs(i.x-c.x)))c=k});
+        if(!c)return;
+        (c.er?er:tri)[c.t]=i.s;
+      });
+      if(!nome.length)return;
+      var n=+f.s,A={n:n,nome:limpaNome(nome.join(' ')),t:['','',''],er:[false,false,false],sem:[false,false,false],parecer:parecer};
+      for(var t=0;t<3;t++){
+        var a=tri[t],b=er[t];
+        if(a!==null&&b!==null&&vnum(b)>vnum(a)){A.t[t]=b;A.er[t]=true}   // vale a maior: trimestre ou ER
+        else if(a!==null)A.t[t]=a;
+        else if(b!==null){A.t[t]=b;A.er[t]=true}
+        if(A.t[t]!=='')out.tris[t]=true;
+      }
+      out.alunos[n]=A;
+    });
+    return true;
+  }
   async function lerPDF(file){
     var buf=await file.arrayBuffer();
     var doc=await pdfjsLib.getDocument({data:buf}).promise;
@@ -246,6 +303,12 @@ footer b{color:var(--ink)}
     for(var p=1;p<=doc.numPages;p++){
       var page=await doc.getPage(p);
       var tc=await page.getTextContent();
+      if(out.ficha||tc.items.some(function(i){return /Ficha de Resumo de Aproveitamento/i.test(i.str||'')})){
+        if(!out.ficha){out.ficha=true;out.tris=[false,false,false]}
+        var vt=page.getViewport({scale:1}).transform;
+        lerFicha(tc.items.filter(function(i){return i.str&&i.str.trim()}).map(function(i){var m=pdfjsLib.Util.transform(vt,i.transform);return {s:i.str.trim(),x:m[4],y:m[5]}}),out);
+        continue;
+      }
       var it=tc.items.filter(function(i){return i.str&&i.str.trim()}).map(function(i){return {s:i.str.trim(),x:i.transform[4],y:i.transform[5]}});
       // linhas por y
       var linhas=[];
@@ -298,6 +361,22 @@ footer b{color:var(--ink)}
     for(var k=0;k<files.length;k++){
       try{
         var r=await lerPDF(files[k]);
+        if(r.ficha){
+          var qtd=Object.keys(r.alunos).length;
+          if(!qtd){msgs.push(files[k].name+': não encontrei alunos nesta Ficha de Resumo.');continue}
+          var chF=(r.serie+' '+r.turma).trim()||'Turma';
+          var TF=turmas[chF]||(turmas[chF]={rot:'Turma '+r.turma+(r.serie?' · '+r.serie:'')+(r.comp?' · '+r.comp:''),alunos:{},tris:[false,false,false]});
+          for(var t=0;t<3;t++)if(r.tris[t])TF.tris[t]=true;
+          Object.keys(r.alunos).forEach(function(n){
+            var a=r.alunos[n];var A=TF.alunos[n]||(TF.alunos[n]={n:a.n,nome:a.nome,t:['','',''],sem:[false,false,false]});
+            A.nome=a.nome;A.parecer=a.parecer;A.er=A.er||[false,false,false];
+            for(var t=0;t<3;t++){if(!r.tris[t])continue;A.t[t]=a.t[t];A.sem[t]=a.t[t]==='';A.er[t]=a.er[t]}
+          });
+          atual=chF;
+          var trs=[];r.tris.forEach(function(b,i){if(b)trs.push((i+1)+'º')});
+          msgs.push('Turma '+r.turma+' (Ficha de Resumo): '+qtd+' alunos, notas do '+(trs.join(', ')||'nenhum')+' tri.');
+          continue;
+        }
         if(r.tri<0||!Object.keys(r.alunos).length&&!r.turma){msgs.push(files[k].name+': não parece um PDF de Aproveitamentos.');continue}
         var chave=(r.serie+' '+r.turma).trim()||'Turma';
         var T=turmas[chave]||(turmas[chave]={rot:'Turma '+r.turma+(r.serie?' · '+r.serie:'')+(r.comp?' · '+r.comp:''),alunos:{},tris:[false,false,false]});
@@ -335,7 +414,9 @@ footer b{color:var(--ink)}
         td=document.createElement('td');var inp=document.createElement('input');
         inp.type='text';inp.inputMode='decimal';inp.autocomplete='off';inp.value=A.t[i];inp.dataset.i=i;inp.setAttribute('aria-label',(i+1)+'º trimestre de '+A.nome);
         if(A.t[i]==='')inp.className='vazio';
-        td.appendChild(inp);tr.appendChild(td);
+        td.appendChild(inp);
+        if(A.er&&A.er[i]){var em=document.createElement('small');em.className='erm';em.textContent='ER';em.title='Nota dos estudos de recuperação (maior que a do trimestre)';td.appendChild(em)}
+        tr.appendChild(td);
       }
       td=document.createElement('td');td.className='med';tr.appendChild(td);
       td=document.createElement('td');td.className='sit';tr.appendChild(td);
@@ -347,6 +428,7 @@ footer b{color:var(--ink)}
     var T=turmas[atual];if(!T)return;var na=0,nb=0,filtro=el('filtro').value;
     [].forEach.call(el('tb').rows,function(tr){
       var A=T.alunos[tr.dataset.n];
+      if(A.parecer&&A.t.every(function(v){return v===''})){tr.cells[5].textContent='—';tr.cells[5].className='med';tr.cells[6].textContent='Avaliação por parecer';tr.cells[6].className='sit';tr.hidden=filtro==='abaixo';return}
       var r=avaliar(A.t.map(num));
       var med=tr.cells[5],sit=tr.cells[6];
       if(!r){med.textContent='—';med.className='med';sit.textContent='Sem notas';sit.className='sit';tr.hidden=filtro==='abaixo';return}
@@ -360,7 +442,8 @@ footer b{color:var(--ink)}
   el('tb').addEventListener('input',function(e){
     var inp=e.target;if(inp.tagName!=='INPUT')return;
     var A=turmas[atual].alunos[inp.closest('tr').dataset.n];A.t[+inp.dataset.i]=inp.value;
-    inp.className=inp.value===''?'vazio':'';atualizar();salvar();
+    inp.className=inp.value===''?'vazio':'';
+    if(A.er&&A.er[+inp.dataset.i]){A.er[+inp.dataset.i]=false;var em=inp.parentNode.querySelector('.erm');if(em)em.remove()}atualizar();salvar();
   });
   el('selTurma').addEventListener('change',function(){atual=el('selTurma').value;montar();salvar()});
   el('filtro').addEventListener('change',atualizar);
