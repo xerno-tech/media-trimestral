@@ -66,7 +66,9 @@ td.num{color:var(--muted);font-size:13px;width:2em}
 td input{width:3.3em;min-height:38px;text-align:center;font-weight:700;font-size:16px;color:var(--blue);border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:2px}
 td input.vazio{border-style:dashed}
 td.med{font-weight:800;white-space:nowrap}
-td small.erm{display:block;font-size:10px;font-weight:700;color:var(--muted);line-height:1;margin-top:2px}
+td small.duas{display:block;font-size:10px;color:var(--muted);line-height:1.25;margin-top:2px;white-space:nowrap}
+td small.duas span{display:block}
+td small.duas span.maior{color:var(--blue);font-weight:800}
 td.sit{font-size:13px;text-align:left;line-height:1.25;min-width:7.5em}
 .up{color:var(--blue)}.down{color:var(--red)}
 .sit small{display:block;color:var(--muted);font-weight:400}
@@ -82,7 +84,7 @@ body.oculto td.nome{filter:blur(7px)}
 footer{margin-top:22px;text-align:center;font-size:13px;color:var(--muted);line-height:1.5}
 footer b{color:var(--ink)}
 [hidden]{display:none!important}
-@media(max-width:560px){table{font-size:14px}td input{width:2.9em;font-size:15px}td.sit{min-width:6em}th,td{padding:5px 2px}}
+@media(max-width:560px){table{font-size:14px}td input{width:3.4em;font-size:14px}td.sit{min-width:6em}th,td{padding:5px 2px}}
 </style>
 </head>
 <body>
@@ -116,7 +118,7 @@ footer b{color:var(--ink)}
 
   <section id="vTurma" hidden>
     <div class="drop" id="drop">
-      Escolha a <b>Ficha de Resumo de Aproveitamento</b> da turma (já traz os 3 trimestres e os ER) ou os PDFs de <b>Aproveitamentos</b> do Diário de Classe (um por trimestre). Pode escolher vários de uma vez.
+      Escolha a <b>Ficha de Resumo de Aproveitamento</b> da turma (já traz os 3 trimestres e a EAC) ou os PDFs de <b>Aproveitamentos</b> do Diário de Classe (um por trimestre). Pode escolher vários de uma vez.
       <label class="btn fill" for="arq">Carregar PDFs</label>
       <input id="arq" type="file" accept="application/pdf,.pdf" multiple>
       <div class="info">O PDF é lido aqui no seu celular. Nada é enviado para a internet.</div>
@@ -142,7 +144,7 @@ footer b{color:var(--ink)}
         <tbody id="tb"></tbody>
       </table>
       </div>
-      <p class="info">Os nomes começam só com iniciais: desmarque “Só iniciais” para ver o nome completo. Ao sair da página, os nomes ficam borrados. * média parcial (falta trimestre). Campo tracejado = sem nota no PDF. “ER” embaixo da nota = vale a nota da recuperação, por ser maior. Dá para digitar ou corrigir qualquer nota na tabela.</p>
+      <p class="info">Os nomes começam só com iniciais: desmarque “Só iniciais” para ver o nome completo. Ao sair da página, os nomes ficam borrados. * média parcial (falta trimestre). Campo tracejado = sem nota no PDF. Embaixo da nota aparecem a do trimestre (Tri) e a da EAC; a destacada é a maior, que é a que entra na média. Dá para digitar ou corrigir qualquer nota na tabela.</p>
       <div class="bar">
         <button type="button" class="btn small danger" id="apagar">Limpar turma</button>
       </div>
@@ -158,7 +160,7 @@ footer b{color:var(--ink)}
       <li>Serve <b>só para conferência</b>. O resultado oficial é sempre o registrado no sistema da escola.</li>
       <li><b>Não indica aprovação ou reprovação.</b> Mostra apenas se a média está acima ou abaixo de 6,0 e quanto falta.</li>
       <li>Usa a fórmula MA = (1º×3 + 2º×3 + 3º×4) ÷ 10, média mínima 6,0. Confira se é a mesma do regimento da sua escola.</li>
-      <li>Se o PDF trouxer nota de estudos de recuperação (ER), vale a maior entre a do trimestre e a do ER. A tabela marca “ER” quando foi a da recuperação.</li>
+      <li>Se o PDF trouxer nota da EAC (coluna “ER” no PDF), a tabela mostra as duas notas e destaca a maior, que é a usada na média.</li>
       <li>É gratuita, sem anúncios e sem cadastro. É oferecida como está, sem garantia: em caso de dúvida, confira as notas com o PDF e com o sistema.</li>
     </ul>
     <h3>Privacidade e LGPD</h3>
@@ -284,9 +286,10 @@ footer b{color:var(--ink)}
         (c.er?er:tri)[c.t]=i.s;
       });
       if(!nome.length)return;
-      var n=+f.s,A={n:n,nome:limpaNome(nome.join(' ')),t:['','',''],er:[false,false,false],sem:[false,false,false],parecer:parecer};
+      var n=+f.s,A={n:n,nome:limpaNome(nome.join(' ')),t:['','',''],er:[false,false,false],orig:[null,null,null],sem:[false,false,false],parecer:parecer};
       for(var t=0;t<3;t++){
         var a=tri[t],b=er[t];
+        if(b!==null)A.orig[t]={tri:a,eac:b};
         if(a!==null&&b!==null&&vnum(b)>vnum(a)){A.t[t]=b;A.er[t]=true}   // vale a maior: trimestre ou ER
         else if(a!==null)A.t[t]=a;
         else if(b!==null){A.t[t]=b;A.er[t]=true}
@@ -370,7 +373,8 @@ footer b{color:var(--ink)}
           Object.keys(r.alunos).forEach(function(n){
             var a=r.alunos[n];var A=TF.alunos[n]||(TF.alunos[n]={n:a.n,nome:a.nome,t:['','',''],sem:[false,false,false]});
             A.nome=a.nome;A.parecer=a.parecer;A.er=A.er||[false,false,false];
-            for(var t=0;t<3;t++){if(!r.tris[t])continue;A.t[t]=a.t[t];A.sem[t]=a.t[t]==='';A.er[t]=a.er[t]}
+            A.orig=A.orig||[null,null,null];
+            for(var t=0;t<3;t++){if(!r.tris[t])continue;A.t[t]=a.t[t];A.sem[t]=a.t[t]==='';A.er[t]=a.er[t];A.orig[t]=a.orig[t]}
           });
           atual=chF;
           var trs=[];r.tris.forEach(function(b,i){if(b)trs.push((i+1)+'º')});
@@ -415,7 +419,12 @@ footer b{color:var(--ink)}
         inp.type='text';inp.inputMode='decimal';inp.autocomplete='off';inp.value=A.t[i];inp.dataset.i=i;inp.setAttribute('aria-label',(i+1)+'º trimestre de '+A.nome);
         if(A.t[i]==='')inp.className='vazio';
         td.appendChild(inp);
-        if(A.er&&A.er[i]){var em=document.createElement('small');em.className='erm';em.textContent='ER';em.title='Nota dos estudos de recuperação (maior que a do trimestre)';td.appendChild(em)}
+        var o=A.orig&&A.orig[i];
+        if(o){
+          var box=document.createElement('small');box.className='duas';
+          [['Tri',o.tri,o.tri!==null&&!A.er[i]],['EAC',o.eac,A.er[i]||(o.tri!==null&&vnum(o.tri)===vnum(o.eac))]].forEach(function(q){var sp=document.createElement('span');sp.textContent=q[0]+' '+(q[1]===null?'—':q[1]);if(q[2])sp.className='maior';box.appendChild(sp)});
+          td.appendChild(box);
+        }
         tr.appendChild(td);
       }
       td=document.createElement('td');td.className='med';tr.appendChild(td);
@@ -442,8 +451,7 @@ footer b{color:var(--ink)}
   el('tb').addEventListener('input',function(e){
     var inp=e.target;if(inp.tagName!=='INPUT')return;
     var A=turmas[atual].alunos[inp.closest('tr').dataset.n];A.t[+inp.dataset.i]=inp.value;
-    inp.className=inp.value===''?'vazio':'';
-    if(A.er&&A.er[+inp.dataset.i]){A.er[+inp.dataset.i]=false;var em=inp.parentNode.querySelector('.erm');if(em)em.remove()}atualizar();salvar();
+    inp.className=inp.value===''?'vazio':'';atualizar();salvar();
   });
   el('selTurma').addEventListener('change',function(){atual=el('selTurma').value;montar();salvar()});
   el('filtro').addEventListener('change',atualizar);
